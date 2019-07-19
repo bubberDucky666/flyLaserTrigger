@@ -1,10 +1,8 @@
 
-
-
 function Jonas2 ()
     vidName = 'myVideo.avi';  
 
-    thr  = 100;
+    thr  = 80;
     minA = 100;
     maxA = 500000;
     fps  = 15;
@@ -15,12 +13,14 @@ function Jonas2 ()
     
     trig = false;
     
-    h_fig = figure('Position', [10 10 90 60]);
+    h_fig = figure('Position', [500 0 90 60]);
     set(h_fig,'KeyPressFcn',@kF);
 
+    aviObject = VideoWriter(vidName);  % Create a new AVI file
+    aviObject.FrameRate = fps;
     ard       = arduino('com7', 'uno');
     vid       = videoinput('pointgrey', 1);
-    aviObject = VideoWriter(vidName);  % Create a new AVI file
+   
     
     check = true;
     
@@ -43,7 +43,7 @@ function Jonas2 ()
         fIm = bwareafilt(tIm,[minA maxA]);
         fIm = imresize(fIm, .5);
         
-        %montage({im, fIm});
+        imshow(fIm);
         props = regionprops(fIm, 'Area', 'Perimeter','PixelIdxList');
 
         if size(props) > 0
@@ -59,7 +59,7 @@ function Jonas2 ()
         
         elseif trig == false
             writeDigitalPin(ard, 'D5', 1); %lights off
-            disp('No');
+            %disp('No');
             pause(1)
             %imshowpair(fIm, im, 'montage');
         end
@@ -68,18 +68,21 @@ function Jonas2 ()
             writeVideo(aviObject, im);
             %disp("written");
             
-            nT = toc(iT);
+            nT = round(toc(iT));
+            disp(nT + 'nt');
             
-            if mod(nT, dur/3)
-                %disp('flash');
+            if mod(nT, dur/5)
+                disp('flash');
                 flash(im, fIm, ard );
             else
-                %disp('wait');
+                disp('wait');
                 writeDigitalPin(ard, 'D5', 1); %lights off
             end
                         
             if nT == dur
-                disp('complete');
+                disp('complete');    
+                close(aviObject);
+                delete(vid);
                 break 
             end
         end
@@ -93,16 +96,12 @@ function kF (h, ~)
     global cut; 
     cut = false;
     close(h);
-       
-    close(aviObject);
-    delete(vid);
-    disp('done');
 end
 
 function flash(im, fIm, ard)
    
     writeDigitalPin(ard, 'D5', 0); %lights on
     %disp('Something there');
-    montage({fIm, im});
+    %montage({fIm, im});
     return;
 end
