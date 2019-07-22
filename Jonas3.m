@@ -11,7 +11,7 @@ function Jonas3 ()
     lWt  = 5.0;     %how long before initial flash (after detection)
     lBtw  = .5;     %how long between flashes
     lDur = .5;      %how long flash lasts
-    lStr = 5;       %streangth of light (lower is stronger)
+    lStr = 4.5;       %streangth of light (lower is stronger)
     
     global cut; 
     cut = true;
@@ -20,9 +20,8 @@ function Jonas3 ()
     aviObject.FrameRate = fps;
     open(aviObject);
     
-    %aviObject.FrameRate = fps;
-    ard       = arduino('com7', 'uno');
-    vid       = videoinput('pointgrey', 1);
+    ard                  = arduino('com7', 'uno');
+    vid                  = videoinput('pointgrey', 1);
     vid.FramesPerTrigger = Inf;
 
        
@@ -70,7 +69,7 @@ function Jonas3 ()
                     if mod(d, lWt)   %initial wait time over
                         disp('butt');
                         while d < dur %once waitime over
-                            writeDigitalPin(ard, 'D5', lStr); %lights on
+                            writePWMVoltage(ard, 'D5', lStr); %lights on
                             disp('light on');
                             pause(lDur);
                             writeDigitalPin(ard, 'D5', 1);
@@ -83,9 +82,11 @@ function Jonas3 ()
                     elseif d < lWt   %initial wait time not reached
                         disp('not yet'); 
                     end
+                    
                 end
                 break    %break out of overall loop when vid is over
             end
+            
         else
             b = toc(a);  %refreshes timer that times out program
         end
@@ -94,9 +95,9 @@ function Jonas3 ()
         disp('nah');
     end
     
-    frames = getdata(vid);
     
     
+    frames = getdata(vid);    
     for f = 1:size(frames, 4)
         
         if f > lOn
