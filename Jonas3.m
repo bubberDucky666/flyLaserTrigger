@@ -1,6 +1,6 @@
 
-function Jonas3 ()
-    vidName = 'myVideo.avi';  
+function Jonas3 (name)
+    vidName = name; 
 
     thr  = 50;      %threshold (the lower, the less inclusive)
     minA = 10000;   %minimum area
@@ -39,7 +39,7 @@ function Jonas3 ()
     
     writeDigitalPin(ard, 'D5', 1);
     
-    preview(vid);
+    %preview(vid);
       
     a = tic;
     b = toc(a);
@@ -134,4 +134,20 @@ function Jonas3 ()
     writeVideo(aviObject, frames);
     close(aviObject);
     delete(vid);
+    
+end
+
+
+function run ()
+
+    num = 1;
+    while true
+        writeDigitalPin(ard, 'D5', 1);
+        name = ['flyVid' num2str(num)];
+        Jonas3(name);
+        pause(5)
+        num =+ 1;
+    end
+        
+end
     
