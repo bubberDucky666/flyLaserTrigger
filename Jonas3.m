@@ -2,16 +2,17 @@
 function Jonas3 ()
     vidName = 'myVideo.avi';  
 
-    thr  = 80;      %threshold (the lower, the less inclusive)
-    minA = 100;     %minimum area
+    thr  = 50;      %threshold (the lower, the less inclusive)
+    minA = 10000;   %minimum area
     maxA = 500000;  %maximum area
-    fps  = 15;      %frames per second
+    fps  = 30;      %frames per second
     dur  = 10;      %duration of light flashign in seconds
     tOut = 60;      %time before program gives up in seconds
     lWt  = 5.0;     %how long before initial flash (after detection)
-    lBtw  = .5;     %how long between flashes
+    lBtw = .5;      %how long between flashes
     lDur = .5;      %how long flash lasts
-    lStr = 4.5;       %streangth of light (lower is stronger)
+    lStr = 4.5;     %streangth of light (lower is stronger)
+    numF = 3;
     
     global cut; 
     cut = true;
@@ -24,18 +25,22 @@ function Jonas3 ()
     vid                  = videoinput('pointgrey', 1);
     vid.FramesPerTrigger = Inf;
 
+    %Beginning to create arrays to keep track of frames where light is
+    %triggered and frames where light is turned off
+    
+    lFrames = [;];
+    %dFrames = [];
        
     check1 = true;   %starting image aquisition
 
+    
+    %--------------------------------------------------------------------
+    
+    
     writeDigitalPin(ard, 'D5', 1);
     
     preview(vid);
-    
-    %VIDEO ACQUISITION STARTS HERE AUTOMATICALLY. FOR A CONDITIONAL
-    %START, PUT IT RIGHT HERE :)
-    
-    start(vid);
-    
+      
     a = tic;
     b = toc(a);
     
@@ -57,30 +62,48 @@ function Jonas3 ()
             if check1
                 lOn    = vid.FramesAcquired;
                 check1 = false;
+                start(vid);
             
             else
                 while true              %fly is detected and rec started
 
-                    disp('yus');
+                    %disp('yus');
 
                     d = round(toc(c));  %checks timer since object was detected
 
                     disp(d);
+                    
                     if mod(d, lWt)   %initial wait time over
-                        disp('butt');
-                        while d < dur %once waitime over
-                            writePWMVoltage(ard, 'D5', lStr); %lights on
-                            disp('light on');
-                            pause(lDur);
-                            writeDigitalPin(ard, 'D5', 1);
-                            disp('light off');
-                            pause(lBtw)
+                        %disp('butt');
+                        count = 0;
+                        while d < dur                             %once waitime over
+                            s          = size(lFrames,1) + 1;     %set variables for
+                            m          = 1;                       %light frames
+                            
+                            if count < numF
+                                
+                                writePWMVoltage(ard, 'D5', lStr); %lights on
+                                disp('light on');
+                                fa = vid.FramesAcquired;
+                                lFrames(s,m) = fa;  
+                                pause(lDur);
+                                m = 2;
+
+                                writeDigitalPin(ard, 'D5', 1);    %lights off
+                                disp('light off');
+                                fa = vid.FramesAcquired;
+                                lFrames(s,m) = fa;
+                                disp(fa);
+                                pause(lBtw)
+                                count = count + 1;
+                            end
+                            
                             d = round(toc(c));   %checks timer since object was detected
                         end
                         break          %break out of while true loop
                     
                     elseif d < lWt   %initial wait time not reached
-                        disp('not yet'); 
+                        %disp('not yet'); 
                     end
                     
                 end
@@ -92,22 +115,25 @@ function Jonas3 ()
         end
         
         writeDigitalPin(ard, 'D5', 1);  %this is if nothing's been detected yet
-        disp('nah');
+        %disp('nah');
     end
     
     
-    
-    frames = getdata(vid);    
-    for f = 1:size(frames, 4)
-        
-        if f > lOn
-            frames(931:950,1251:1270,:,f) = 255*ones(20,20);
-            frames(936:945,1256:1265,:,f) = zeros(10,10);
-            
-        end        
-    end
-    
+    %disp(lFrames);
+    frames = getdata(vid);
+
     writeVideo(aviObject, frames);
     close(aviObject);
     delete(vid);
+    
+    for f = 1:size(frames, 4)
+        for grp = 1:size(lFrames)
+            if f > lFrames(grp, 1) && f < lFrames(grp, 2)
+                disp('cow');
+                
+                frames(931:950,1251:1270,:,f) = 255*ones(20,20);
+                frames(936:945,1256:1265,:,f) = zeros(10,10);
+            end
+        end 
+    end
     
