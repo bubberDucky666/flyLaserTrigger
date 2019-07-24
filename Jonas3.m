@@ -8,11 +8,11 @@ function Jonas3 ()
     fps  = 30;      %frames per second
     dur  = 10;      %duration of light flashign in seconds
     tOut = 60;      %time before program gives up in seconds
-    lWt  = 5.0;     %how long before initial flash (after detection)
+    lWt  = 0.0;     %how long before initial flash (after detection)
     lBtw = .5;      %how long between flashes
     lDur = .5;      %how long flash lasts
     lStr = 4.5;     %streangth of light (lower is stronger)
-    numF = 3;
+    numF = 4;       %number of flashes
     
     global cut; 
     cut = true;
@@ -119,21 +119,19 @@ function Jonas3 ()
     end
     
     
-    %disp(lFrames);
     frames = getdata(vid);
 
-    writeVideo(aviObject, frames);
-    close(aviObject);
-    delete(vid);
-    
     for f = 1:size(frames, 4)
         for grp = 1:size(lFrames)
             if f > lFrames(grp, 1) && f < lFrames(grp, 2)
-                disp('cow');
                 
                 frames(931:950,1251:1270,:,f) = 255*ones(20,20);
                 frames(936:945,1256:1265,:,f) = zeros(10,10);
             end
         end 
     end
+    
+    writeVideo(aviObject, frames);
+    close(aviObject);
+    delete(vid);
     
