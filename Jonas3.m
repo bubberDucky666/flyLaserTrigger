@@ -1,5 +1,8 @@
+time = 60 * 10;  %how long program runs 
+run(time);
 
-function Jonas3 (name)
+%all other params defined in rec ()
+function rec (name)
     vidName = name; 
 
     thr  = 50;      %threshold (the lower, the less inclusive)
@@ -60,9 +63,8 @@ function Jonas3 (name)
         
         if size(props) > 0
             if check1
-                lOn    = vid.FramesAcquired;
                 check1 = false;
-                start(vid);
+                start(vid);             %starts recording video after detection
             
             else
                 while true              %fly is detected and rec started
@@ -138,16 +140,18 @@ function Jonas3 (name)
 end
 
 
-function run ()
-
+function run (time)
+    
+    a   = tic;
     num = 1;
-    while true
+    b   = toc(a);
+    while b > time
         writeDigitalPin(ard, 'D5', 1);
         name = ['flyVid' num2str(num)];
-        Jonas3(name);
-        pause(5)
+        rec(name);
         num =+ 1;
-    end
-        
+        b = toc(a);
+        pause()
+    end    
 end
-    
+
