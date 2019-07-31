@@ -1,30 +1,34 @@
-time = 60 * 10;  %how long program runs 
+global ard;
+%ard = arduino();
+disp(class(ard));
+
+time = 60 * 30;  %how long program runs 
 run(time);
 
 %all other params defined in rec ()
 function rec (name)
     vidName = name; 
 
-    thr  = 50;      %threshold (the lower, the less inclusive)
-    minA = 10000;   %minimum area
+    thr  = 90;      %threshold (the lower, the less inclusive)
+    minA = 900;     %minimum area
     maxA = 500000;  %maximum area
     fps  = 30;      %frames per second
-    dur  = 10;      %duration of light flashign in seconds
-    tOut = 60;      %time before program gives up in seconds
+    dur  = 10;      %5 of vid file
+    tOut = 60*30;      %time before program gives up in seconds
     lWt  = 0.0;     %how long before initial flash (after detection)
     lBtw = .5;      %how long between flashes
     lDur = .5;      %how long flash lasts
     lStr = 4.5;     %streangth of light (lower is stronger)
     numF = 4;       %number of flashes
     
+    global ard;
     global cut; 
     cut = true;
 
     aviObject           = VideoWriter(vidName);  % Create a new AVI file
     aviObject.FrameRate = fps;
-    open(aviObject);
+    disp('vid setup');
     
-    ard                  = arduino('com7', 'uno');
     vid                  = videoinput('pointgrey', 1);
     vid.FramesPerTrigger = Inf;
 
@@ -42,7 +46,7 @@ function rec (name)
     
     writeDigitalPin(ard, 'D5', 1);
     
-    %preview(vid);
+    preview(vid);
       
     a = tic;
     b = toc(a);
@@ -62,6 +66,7 @@ function rec (name)
         c = tic;     %baseline for timer d (when object is detected)
         
         if size(props) > 0
+            disp('seen a guy');
             if check1
                 check1 = false;
                 start(vid);             %starts recording video after detection
@@ -120,9 +125,13 @@ function rec (name)
         %disp('nah');
     end
     
-    
+    disp('done')
     frames = getdata(vid);
 
+    
+    
+    
+    
     for f = 1:size(frames, 4)
         for grp = 1:size(lFrames)
             if f > lFrames(grp, 1) && f < lFrames(grp, 2)
@@ -133,25 +142,29 @@ function rec (name)
         end 
     end
     
+    open(aviObject);        
     writeVideo(aviObject, frames);
     close(aviObject);
+    
     delete(vid);
     
 end
 
 
-function run (time)
-    
+function run (time)    
     a   = tic;
     num = 1;
     b   = toc(a);
-    while b > time
-        writeDigitalPin(ard, 'D5', 1);
+    global ard;
+    %ard = arduino('com7', 'uno');
+    while b < time
+        writePWMVoltage(ard, 'D5',3);
         name = ['flyVid' num2str(num)];
         rec(name);
-        num =+ 1;
+        disp('file made');
+        num = num+1;
         b = toc(a);
-        pause()
+        
     end    
 end
 
