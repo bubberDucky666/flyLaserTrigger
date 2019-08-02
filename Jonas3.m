@@ -2,41 +2,43 @@ global ard;
 %ard = arduino();
 disp(class(ard));
 
-time = 60 * 30;  %how long program runs 
+time = 60 * 60 * 5; %how long program runs 
 run(time);
 
 %all other params defined in rec ()
 function rec (name)
     vidName = name; 
 
-    thr  = 90;      %threshold (the lower, the less inclusive)
-    minA = 900;     %minimum area
-    maxA = 500000;  %maximum area
-    fps  = 30;      %frames per second
-    dur  = 10;      %5 of vid file
-    tOut = 60*30;      %time before program gives up in seconds
-    lWt  = 0.0;     %how long before initial flash (after detection)
-    lBtw = .5;      %how long between flashes
-    lDur = .5;      %how long flash lasts
-    lStr = 4.5;     %streangth of light (lower is stronger)
-    numF = 4;       %number of flashes
+    thr  = 110;      %threshold (the lower, the less inclusive)
+    minA = 1200;     %minimum area
+    maxA = 500000;   %maximum area
+    fps  = 30;       %frames per second
+    dur  = 10;       %5 of vid file
+    tOut = 60*60*5;  %time before program gives up in seconds
+    lWt  = 0.0;      %how long before initial flash (after detection)
+    lBtw = .5;       %how long between flashes
+    lDur = .5;       %how long flash lasts
+    lStr = 4.5;      %streangth of light (lower is stronger)
+    numF = 4;        %number of flashes
     
     global ard;
     global cut; 
     cut = true;
 
     aviObject           = VideoWriter(vidName);  % Create a new AVI file
-    aviObject.FrameRate = fps;
+    aviObject.FrameRate = fps;                   % Set frame rate
     disp('vid setup');
     
     vid                  = videoinput('pointgrey', 1);
     vid.FramesPerTrigger = Inf;
+    
+    % Configure the object for manual trigger mode.
+    triggerconfig(vid, 'manual');
 
     %Beginning to create arrays to keep track of frames where light is
-    %triggered and frames where light is turned off
+    %triggered
     
     lFrames = [;];
-    %dFrames = [];
        
     check1 = true;   %starting image aquisition
 
@@ -44,15 +46,16 @@ function rec (name)
     %--------------------------------------------------------------------
     
     
-    writeDigitalPin(ard, 'D5', 1);
+    writeDigitalPin(ard, 'D5', 1); %Light initially turned off
     
-    preview(vid);
+    preview(vid); %Starting preview
+    start(vid);   %Start acquiring frames, but not logging them to mem
       
     a = tic;
     b = toc(a);
     
     
-    while b <= tOut
+    while b <= tOut       
         im  = getsnapshot(vid);
         im  = imresize(im, 0.33);
         
@@ -64,13 +67,16 @@ function rec (name)
         props = regionprops(fIm, 'Area', 'Perimeter','PixelIdxList');
         
         c = tic;     %baseline for timer d (when object is detected)
-        
+        flushdata(vid);
+
         if size(props) > 0
             disp('seen a guy');
             if check1
+                
                 check1 = false;
-                start(vid);             %starts recording video after detection
-            
+                %start(vid);             %starts recording video after detection
+                trigger(vid);            %Starts logging frames to mem
+                
             else
                 while true              %fly is detected and rec started
 
@@ -78,7 +84,7 @@ function rec (name)
 
                     d = round(toc(c));  %checks timer since object was detected
 
-                    disp(d);
+                    %disp(d);
                     
                     if mod(d, lWt)   %initial wait time over
                         %disp('butt');
@@ -92,15 +98,15 @@ function rec (name)
                                 writePWMVoltage(ard, 'D5', lStr); %lights on
                                 disp('light on');
                                 fa = vid.FramesAcquired;
-                                lFrames(s,m) = fa;  
+                                lFrames(s,m) = fa;                 %sets start to laserFrames sublist
                                 pause(lDur);
                                 m = 2;
 
                                 writeDigitalPin(ard, 'D5', 1);    %lights off
                                 disp('light off');
-                                fa = vid.FramesAcquired;
-                                lFrames(s,m) = fa;
-                                disp(fa);
+                                fa = vid.FramesAcquired;    
+                                lFrames(s,m) = fa;                  %sets end to laserFrames sublist
+                                disp(fa);   
                                 pause(lBtw)
                                 count = count + 1;
                             end
@@ -129,9 +135,6 @@ function rec (name)
     frames = getdata(vid);
 
     
-    
-    
-    
     for f = 1:size(frames, 4)
         for grp = 1:size(lFrames)
             if f > lFrames(grp, 1) && f < lFrames(grp, 2)
@@ -142,18 +145,18 @@ function rec (name)
         end 
     end
     
-    open(aviObject);        
-    writeVideo(aviObject, frames);
-    close(aviObject);
-    
+    open(aviObject);
+    flushdata(vid);
     delete(vid);
-    
+
+    writeVideo(aviObject, frames);
+    close(aviObject);    
 end
 
 
 function run (time)    
     a   = tic;
-    num = 1;
+    num = 2;      %This is the number the first file will end with (should probably be 1 or 0)
     b   = toc(a);
     global ard;
     %ard = arduino('com7', 'uno');
